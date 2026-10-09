@@ -1,0 +1,203 @@
+
+---
+title: "Flights at Bay"
+author: "Akshat Bhushan Sinha"
+date: "October 2026"
+output:
+  ioslides_presentation:
+    widescreen: true
+    smaller: false
+---
+
+<style>
+body, p, li, table {
+  font-family: "Times New Roman", Times, serif !important;
+}
+slides > slide {
+  background: #F4F8F5 !important;
+  color: #18352B !important;
+}
+h1, h2, h3 {
+  font-family: "Times New Roman", Times, serif !important;
+  color: #064E3B !important;
+}
+strong {
+  color: #087F5B;
+}
+.title-slide {
+  background: #064E3B !important;
+  color: #FFFFFF !important;
+}
+.title-slide hgroup h1,
+.title-slide hgroup p {
+  color: #FFFFFF !important;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE
+)
+
+library(nycflights13)
+library(dplyr)
+library(ggplot2)
+
+flight_data <- nycflights13::flights |>
+  filter(
+    !is.na(dep_delay),
+    !is.na(hour),
+    !is.na(distance)
+  ) |>
+  mutate(
+    delayed = dep_delay > 15
+  )
+
+airport_summary <- flight_data |>
+  group_by(origin) |>
+  summarise(
+    total_flights = n(),
+    delay_rate = mean(delayed) * 100,
+    .groups = "drop"
+  )
+
+hour_summary <- flight_data |>
+  group_by(hour) |>
+  summarise(
+    delay_rate = mean(delayed) * 100,
+    flights = n(),
+    .groups = "drop"
+  )
+```
+
+## Flights at Bay
+
+### Keep flight delays at bay.
+
+**AVIATION INTELLIGENCE · DELAY ANALYTICS**
+
+An interactive R Shiny application exploring historical departure delays at New York's three major airports.
+
+**The idea:** turn flight records into an accessible tool for exploring delay patterns and estimated risk.
+
+## The problem
+
+### Delays disrupt journeys
+
+- Passengers need better ways to understand historical delay patterns.
+- Departure delays may vary by airport and scheduled departure hour.
+- Historical data can reveal patterns worth investigating.
+
+**Our objective**
+
+Build an interactive dashboard that lets users explore flight scenarios and understand the limitations of delay estimates.
+
+## Data and methodology
+
+### From flight records to an estimate
+
+```{r data-summary}
+data.frame(
+  Measure = c(
+    "Historical flight records",
+    "Departure airports",
+    "Dataset year",
+    "Delay threshold"
+  ),
+  Value = c(
+    format(nrow(flight_data), big.mark = ","),
+    "JFK, LGA, EWR",
+    "2013",
+    "More than 15 minutes"
+  )
+)
+```
+
+**Data source:** `nycflights13`, a dataset of New York-area flights from 2013.
+
+**Application inputs**
+- Departure airport
+- Scheduled departure hour
+- Flight distance in miles
+
+**Model:** logistic regression estimates the probability of a departure delay exceeding 15 minutes using the selected airport, hour and distance.
+
+## Explore the patterns
+
+### Historical departure delays
+
+```{r delay-chart, fig.width=9, fig.height=4}
+ggplot(
+  airport_summary,
+  aes(
+    x = reorder(origin, delay_rate),
+    y = delay_rate
+  )
+) +
+  geom_col(
+    fill = "#0B8F68",
+    width = 0.65
+  ) +
+  geom_text(
+    aes(label = sprintf("%.1f%%", delay_rate)),
+    hjust = -0.15,
+    color = "#18352B",
+    size = 4
+  ) +
+  coord_flip() +
+  scale_y_continuous(
+    labels = function(x) paste0(x, "%"),
+    expand = expansion(mult = c(0, 0.18))
+  ) +
+  labs(
+    x = NULL,
+    y = "Flights delayed over 15 minutes",
+    title = "Departure delay rate by airport"
+  ) +
+  theme_minimal(base_size = 15) +
+  theme(
+    text = element_text(
+      family = "serif",
+      color = "#18352B"
+    ),
+    plot.title = element_text(
+      color = "#064E3B",
+      face = "bold"
+    ),
+    plot.background = element_rect(
+      fill = "#F4F8F5",
+      color = NA
+    ),
+    panel.background = element_rect(
+      fill = "#F4F8F5",
+      color = NA
+    ),
+    panel.grid.major = element_line(
+      color = "#D4E4DA"
+    ),
+    panel.grid.minor = element_blank()
+  )
+```
+
+**In the Shiny app**, users can select an airport, adjust departure hour and distance, and run the model to explore an estimated delay probability.
+
+## Findings and limitations
+
+### What can we conclude?
+
+- Historical delay rates can be compared across airports.
+- Departure-hour patterns can be explored visually.
+- Interactive inputs make the model accessible to non-technical users.
+
+**Limitations**
+- The dataset represents 2013, not live operations.
+- Historical associations do not prove causation.
+- The model is educational and has not been validated for operational forecasting.
+
+### Flights at Bay
+
+**Understand delays. Make informed decisions.**
+
+Built with R, Shiny, `nycflights13`, `dplyr` and `ggplot2`.
